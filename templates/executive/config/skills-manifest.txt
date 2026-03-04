@@ -1,0 +1,21 @@
+# ClawHub Skills Manifest — Executive Assistant
+# These are installed from ClawHub on container startup.
+# Custom skills in workspace/skills/ are loaded separately.
+
+# Google Workspace (Gmail, Calendar, Tasks, Drive, Docs)
+gog
+
+# Memory setup and management
+memory-setup
+
+# YouTube transcript fetching (useful for meeting recordings)
+yt
+
+# Browser for web research
+agent-browser
+
+# Conventional Commits
+conventional-commits
+
+# GitHub integration
+github
