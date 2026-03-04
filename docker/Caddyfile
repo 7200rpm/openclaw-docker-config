@@ -1,7 +1,10 @@
 # ClawStaffing — Caddy Reverse Proxy
 # Auto-provisions TLS via Let's Encrypt for the customer hostname.
-# The gateway token (OPENCLAW_GATEWAY_TOKEN) handles authentication.
+# Two layers of auth: HTTP Basic Auth (Caddy) + Gateway Token (OpenClaw).
 
 {$CUSTOMER_HOSTNAME} {
+	basicauth {
+		{$BASIC_AUTH_USER} {$BASIC_AUTH_HASH}
+	}
 	reverse_proxy openclaw-gateway:18789
 }
