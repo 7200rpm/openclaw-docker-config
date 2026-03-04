@@ -15,14 +15,15 @@ Docker configuration and application setup for OpenClaw. Companion repository to
 │              │                        │   :latest  :abc1234  │
 │              │                        └──────────────────────┘
 │              │
-│              │  make push-config       ┌──────────────────────┐
-│              │  make push-env          │   Hetzner VPS        │
-│              │──── (infra repo) ──────▶│   ┌────────────────┐ │
-│              │  make deploy            │   │ Docker         │ │
-└──────────────┘                        │   │ openclaw-gw    │ │
-                                        │   └────────────────┘ │
-                                        │   :18789 (loopback)  │
-                                        └──────────────────────┘
+│              │  make push-config       ┌──────────────────────────┐
+│              │  make push-env          │   Hetzner VPS            │
+│              │──── (infra repo) ──────▶│   ┌───────┐  ┌────────┐ │
+│              │  make deploy            │   │ Caddy  │─▶│ OpenClaw│ │
+└──────────────┘                        │   │ :443   │  │ Gateway │ │
+                                        │   │ (TLS)  │  │ :18789  │ │
+          https://slug.clawstaffing.com │   └───────┘  │(loopbck)│ │
+          ─────────────────────────────▶│              └────────┘ │
+                                        └──────────────────────────┘
 ```
 
 ## Prerequisites
@@ -40,6 +41,7 @@ specific files from your local checkout to the VPS:
 | What | Pushed by | Lands at (VPS) |
 |------|-----------|----------------|
 | `docker/docker-compose.yml` | `make bootstrap` (once) | `~/openclaw/docker-compose.yml` |
+| `docker/Caddyfile` | `make bootstrap` (once) | `~/openclaw/Caddyfile` |
 | `config/*` (openclaw.json, etc.) | `make push-config` | `~/.openclaw/` |
 | Docker image | `make deploy` (pulls from GHCR) | Docker image cache |
 | Secrets | `make push-env` | `~/openclaw/.env` |
@@ -220,13 +222,19 @@ Remove or clear `GIT_WORKSPACE_REPO` from your `.env` and redeploy.
 
 ## Accessing the Dashboard
 
-The gateway binds to loopback only (`127.0.0.1:18789`). Access it via SSH tunnel:
+The dashboard is accessible via HTTPS at your customer hostname:
 
-```bash
-ssh -N -L 18789:127.0.0.1:18789 openclaw@VPS_IP
+```
+https://slug.clawstaffing.com
 ```
 
-Then open `http://localhost:18789` in your browser.
+Caddy (included in `docker-compose.yml`) automatically provisions a TLS certificate via Let's Encrypt. The `CUSTOMER_HOSTNAME` environment variable (set in `.env`) tells Caddy which domain to serve.
+
+**Fallback — SSH tunnel** (if DNS/TLS isn't configured):
+```bash
+ssh -N -L 18789:127.0.0.1:18789 openclaw@VPS_IP
+# Then open http://localhost:18789
+```
 
 ## Managing Secrets
 
@@ -307,6 +315,33 @@ Common causes:
 # From the infra repo:
 make status
 ```
+
+## Customer Templates
+
+The `templates/` directory contains preconfigured customer profiles for different use cases. Each template includes custom skills, workspace personality files, deployment scripts, and onboarding documentation.
+
+### Available Templates
+
+| Template | Description | Skills |
+|----------|-------------|--------|
+| **executive** | Executive assistant for busy professionals | email-triage, daily-briefing, meeting-prep, task-extractor, calendar-manager |
+
+### Using a Template
+
+```bash
+# Deploy a new customer using the executive template
+cd templates/executive
+bash scripts/deploy-customer.sh --name "Jane" --company "Acme Corp" --timezone "America/New_York"
+```
+
+Each template includes its own `README.md` with detailed deployment instructions and customization options.
+
+### Creating New Templates
+
+1. Copy an existing template: `cp -r templates/executive templates/my-template`
+2. Customize skills, workspace files, and config
+3. Update the template's `README.md`
+4. Test with a fresh deployment
 
 ## Enable Git Hooks
 
