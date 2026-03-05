@@ -30,10 +30,7 @@ services:
       - "80:80"
       - "443:443"
       - "443:443/udp"   # HTTP/3
-    environment:
-      CUSTOMER_HOSTNAME: ${CUSTOMER_HOSTNAME:-localhost}
-      BASIC_AUTH_USER: ${BASIC_AUTH_USER:-admin}
-      BASIC_AUTH_HASH: ${BASIC_AUTH_HASH:-}
+    env_file: .env
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
