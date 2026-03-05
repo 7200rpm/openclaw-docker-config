@@ -1,7 +1,8 @@
 {
   "gateway": {
     "mode": "local",
-    "port": 18789
+    "port": 18789,
+    "trustedProxies": ["127.0.0.1", "::1"]
   },
   "agents": {
     "defaults": {

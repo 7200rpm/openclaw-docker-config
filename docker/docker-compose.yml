@@ -19,17 +19,19 @@ services:
       - ${OPENCLAW_CONFIG_DIR:-/home/openclaw/.openclaw}:/home/node/.openclaw
       - ${OPENCLAW_WORKSPACE_DIR:-/home/openclaw/.openclaw/workspace}:/home/node/.openclaw/workspace
     ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3
       - "127.0.0.1:${OPENCLAW_GATEWAY_PORT:-18789}:18789"
     command: openclaw gateway --bind lan --port 18789
 
   # Caddy reverse proxy — auto-TLS for customer dashboard access
+  # Shares network namespace with gateway so reverse_proxy goes to localhost.
+  # This makes the gateway see connections from 127.0.0.1 (local).
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"   # HTTP/3
+    network_mode: "service:openclaw-gateway"
     env_file: .env
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
