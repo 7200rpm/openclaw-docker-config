@@ -20,18 +20,29 @@ Compile and deliver a comprehensive morning briefing covering calendar, email, t
 Run these in parallel where possible:
 
 ```bash
-# Today's calendar
-gog calendar list --today
+# Today's calendar events
+gws calendar events list --params '{
+  "calendarId": "primary",
+  "timeMin": "[TODAY_START_ISO]",
+  "timeMax": "[TODAY_END_ISO]",
+  "singleEvents": true,
+  "orderBy": "startTime"
+}'
 
 # Tomorrow's calendar (for prep)
-gog calendar list --date tomorrow
+gws calendar events list --params '{
+  "calendarId": "primary",
+  "timeMin": "[TOMORROW_START_ISO]",
+  "timeMax": "[TOMORROW_END_ISO]",
+  "singleEvents": true,
+  "orderBy": "startTime"
+}'
 
 # Unread emails
-gog gmail list --unread --max 30
+gws gmail users.messages list --params '{"userId": "me", "q": "is:unread", "maxResults": 30}'
 
-# Tasks due today (tool depends on user's task manager)
-# Todoist: todoist list --filter "today"
-# Google Tasks (via gog): gog tasks list
+# Tasks due today
+gws tasks tasks list --params '{"tasklist": "@default", "dueMax": "[TODAY_END_ISO]", "showCompleted": false}'
 ```
 
 ### Step 2: Compile Briefing

@@ -14,11 +14,30 @@ Handle all calendar operations — scheduling, conflict detection, availability 
 When the user or someone else needs to find open time:
 
 ```bash
-# Check this week
-gog calendar list --from today --to "next friday"
+# Check a date range
+gws calendar events list --params '{
+  "calendarId": "primary",
+  "timeMin": "[START_ISO]",
+  "timeMax": "[END_ISO]",
+  "singleEvents": true,
+  "orderBy": "startTime"
+}'
 
-# Check specific date
-gog calendar list --date "2026-03-15"
+# Check a specific date
+gws calendar events list --params '{
+  "calendarId": "primary",
+  "timeMin": "[DATE_START_ISO]",
+  "timeMax": "[DATE_END_ISO]",
+  "singleEvents": true,
+  "orderBy": "startTime"
+}'
+
+# Check free/busy across multiple calendars
+gws calendar freebusy query --json '{
+  "timeMin": "[START_ISO]",
+  "timeMax": "[END_ISO]",
+  "items": [{"id": "primary"}]
+}'
 ```
 
 Present availability considering:
@@ -73,13 +92,20 @@ When the user wants to schedule something:
 
 ```bash
 # Create event (only after user approval)
-gog calendar create \
-  --title "[Meeting name]" \
-  --start "[datetime]" \
-  --end "[datetime]" \
-  --attendees "[email1],[email2]" \
-  --description "[agenda]" \
-  --location "[location or video link]"
+gws calendar events insert --params '{"calendarId": "primary"}' --json '{
+  "summary": "[Meeting name]",
+  "start": {"dateTime": "[START_ISO]", "timeZone": "[TIMEZONE]"},
+  "end": {"dateTime": "[END_ISO]", "timeZone": "[TIMEZONE]"},
+  "attendees": [
+    {"email": "[email1]"},
+    {"email": "[email2]"}
+  ],
+  "description": "[agenda]",
+  "location": "[location or video link]",
+  "conferenceData": {
+    "createRequest": {"requestId": "[unique-id]"}
+  }
+}'
 ```
 
 ### Protect Focus Time

@@ -62,10 +62,14 @@ Add these to your task list? (all / select / skip)
 Once confirmed, add to the user's configured task manager:
 
 ```bash
-# Google Tasks via gog
-gog tasks add "[task description]" --due "[date]"
+# Google Tasks via gws
+gws tasks tasks insert --params '{"tasklist": "@default"}' --json '{
+  "title": "[task description]",
+  "due": "[ISO_DATE]",
+  "notes": "Source: [email/meeting reference]"
+}'
 
-# Todoist
+# Todoist (alternative)
 todoist add "[task description]" --date "[date]" --priority [1-4]
 ```
 

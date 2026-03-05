@@ -33,6 +33,10 @@ RUN npm install -g openclaw@${OPENCLAW_VERSION}
 # Install ClawHub CLI for skill management
 RUN npm install -g clawhub
 
+# Install Google Workspace CLI (gws) for Gmail, Calendar, Tasks, Drive, Sheets, Docs
+# https://github.com/googleworkspace/cli
+RUN npm install -g @googleworkspace/cli
+
 # Create OpenClaw directories owned by node
 RUN mkdir -p /home/node/.openclaw/workspace /.clawhub \
   && chown -R node:node /home/node/.openclaw /.clawhub

@@ -2,8 +2,9 @@
 # These are installed from ClawHub on container startup.
 # Custom skills in workspace/skills/ are loaded separately.
 
-# Google Workspace (Gmail, Calendar, Tasks, Drive, Docs)
-gog
+# Google Workspace CLI (gws) — installed via npm in Dockerfile.
+# Custom skills reference gws commands directly. No ClawHub skill needed.
+# See: https://github.com/googleworkspace/cli
 
 # Memory setup and management
 memory-setup

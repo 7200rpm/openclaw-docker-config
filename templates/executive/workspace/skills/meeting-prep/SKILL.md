@@ -18,8 +18,18 @@ Research and compile context before meetings so the user walks in prepared.
 ### Step 1: Get Meeting Details
 
 ```bash
-# Get specific meeting details
-gog calendar get --event "[meeting name or ID]"
+# List upcoming events to find the right one
+gws calendar events list --params '{
+  "calendarId": "primary",
+  "timeMin": "[NOW_ISO]",
+  "timeMax": "[END_OF_DAY_ISO]",
+  "singleEvents": true,
+  "orderBy": "startTime",
+  "q": "[meeting name keywords]"
+}'
+
+# Get specific event by ID
+gws calendar events get --params '{"calendarId": "primary", "eventId": "[EVENT_ID]"}'
 ```
 
 Extract: title, time, attendees, location/link, description, any attached documents.
@@ -31,8 +41,8 @@ For each attendee and topic:
 1. **Check memory** — Read MEMORY.md for any history with attendees or the topic
 2. **Check recent emails** — Search for email threads related to the meeting topic or with attendees
    ```bash
-   gog gmail search "from:[attendee email] OR to:[attendee email]" --max 10
-   gog gmail search "[meeting topic keywords]" --max 10
+   gws gmail users.messages list --params '{"userId": "me", "q": "from:[attendee email] OR to:[attendee email]", "maxResults": 10}'
+   gws gmail users.messages list --params '{"userId": "me", "q": "[meeting topic keywords]", "maxResults": 10}'
    ```
 3. **Check previous meetings** — Look for notes from prior meetings with the same group
 4. **Check tasks** — Any open action items related to this meeting or these people

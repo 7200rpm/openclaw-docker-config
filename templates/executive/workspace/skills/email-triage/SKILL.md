@@ -11,14 +11,14 @@ Manage the user's inbox by categorizing, summarizing, and drafting responses.
 
 ### Step 1: Fetch Recent Emails
 
-Use the configured email tool (gog for Gmail, himalaya for IMAP) to fetch unread emails.
+Use the Google Workspace CLI (`gws`) to fetch unread emails.
 
 ```bash
-# Gmail via gog
-gog gmail list --unread --max 50
+# List unread messages
+gws gmail users.messages list --params '{"userId": "me", "q": "is:unread", "maxResults": 50}'
 
-# Or via himalaya
-himalaya list --folder INBOX --unread
+# Get a specific message (full content with body)
+gws gmail users.messages get --params '{"userId": "me", "id": "[MESSAGE_ID]", "format": "full"}'
 ```
 
 ### Step 2: Categorize Each Email
@@ -58,12 +58,23 @@ Format the triage as a scannable briefing:
 When the user asks to respond to an email:
 
 1. Read the full email thread for context
+   ```bash
+   # Get the full thread
+   gws gmail users.threads get --params '{"userId": "me", "id": "[THREAD_ID]", "format": "full"}'
+   ```
 2. Check MEMORY.md for any history with the sender or topic
 3. Draft a response matching the user's tone (see USER.md communication preferences)
 4. Present the draft and wait for approval before sending
 
 ```bash
-# Draft format
+# Send email (only after user approval)
+gws gmail users.messages send --params '{"userId": "me"}' --json '{
+  "raw": "[BASE64_ENCODED_EMAIL]"
+}'
+```
+
+```
+Draft format:
 To: [recipient]
 Subject: Re: [subject]
 ---
