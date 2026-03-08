@@ -345,6 +345,8 @@ cd templates/executive
 bash scripts/deploy-customer.sh --name "Jane" --company "Acme Corp" --timezone "America/New_York"
 ```
 
+The executive template waits for the gateway to become healthy after recreating the containers. If you need to tune startup tolerance for slower hosts, set `GATEWAY_READY_ATTEMPTS` and `GATEWAY_READY_DELAY_SECONDS` before running `deploy-customer.sh`.
+
 Each template includes its own `README.md` with detailed deployment instructions and customization options.
 
 ### Creating New Templates
