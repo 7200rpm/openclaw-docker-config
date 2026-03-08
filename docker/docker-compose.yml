@@ -25,6 +25,30 @@ services:
       - "127.0.0.1:${OPENCLAW_GATEWAY_PORT:-18789}:18789"
     command: openclaw gateway --bind lan --port 18789
 
+  template-runtime:
+    image: ghcr.io/${GHCR_USERNAME}/openclaw-docker-config/openclaw-gateway:latest
+    env_file: .env
+    restart: unless-stopped
+    network_mode: "service:openclaw-gateway"
+    environment:
+      HOME: /home/node
+      NODE_ENV: production
+      INSTANCE_ID: ${INSTANCE_ID:-}
+      INSTANCE_SLUG: ${INSTANCE_SLUG:-}
+      TEMPLATE_SLUG: ${TEMPLATE_SLUG:-executive}
+      CONTROL_PLANE_URL: ${CONTROL_PLANE_URL:-}
+      RUNTIME_SYNC_TOKEN: ${RUNTIME_SYNC_TOKEN:-}
+      CUSTOMER_TIMEZONE: ${CUSTOMER_TIMEZONE:-UTC}
+      TEMPLATE_RUNTIME_PORT: ${TEMPLATE_RUNTIME_PORT:-3001}
+      OPENCLAW_WORKSPACE_DIR: /home/node/.openclaw/workspace
+      OPENCLAW_GWS_CONFIG_DIR: /home/node/.config/gws
+    volumes:
+      - ${OPENCLAW_WORKSPACE_DIR:-/home/openclaw/.openclaw/workspace}:/home/node/.openclaw/workspace
+      - ${OPENCLAW_GWS_CONFIG_DIR:-/home/openclaw/.config/gws}:/home/node/.config/gws
+    depends_on:
+      - openclaw-gateway
+    command: node /opt/template-runtime/server.js
+
   # Caddy reverse proxy — auto-TLS for customer dashboard access
   # Shares network namespace with gateway so reverse_proxy goes to localhost.
   # This makes the gateway see connections from 127.0.0.1 (local).
@@ -39,6 +63,7 @@ services:
       - caddy_config:/config
     depends_on:
       - openclaw-gateway
+      - template-runtime
 
   workspace-sync:
     image: ghcr.io/${GHCR_USERNAME}/openclaw-docker-config/workspace-sync:latest

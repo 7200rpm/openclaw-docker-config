@@ -45,6 +45,7 @@ RUN mkdir -p /home/node/.openclaw/workspace /.clawhub \
 COPY config/skills-manifest.txt /opt/config/skills-manifest.txt
 COPY workspace-templates/ /opt/workspace-templates/
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY docker/template-runtime/ /opt/template-runtime/
 
 USER node
 

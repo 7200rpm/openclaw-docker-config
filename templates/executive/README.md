@@ -1,4 +1,4 @@
-# ClawOps — Executive Assistant Template
+# ClawStaffing — Executive Assistant Template
 
 Prebaked OpenClaw configuration for knowledge workers who need email triage, calendar management, daily briefings, and task extraction.
 
@@ -118,7 +118,8 @@ chmod +x scripts/deploy-customer.sh
 
 After deploying, complete these steps with the customer:
 
-1. **Push API keys** — `make push-env` from the infra repo with their Anthropic key
+1. **Push model API keys** — `make push-env` from the infra repo with their `MINIMAX_API_KEY`
+   MiniMax uses an Anthropic-compatible API format and endpoint, but the credential is still a MiniMax-issued key.
 2. **Pair messaging channel** — Have them message the Telegram/WhatsApp bot with `/start`
 3. **Fill in USER.md** — Walk through their preferences, priorities, and key contacts during the onboarding call
 4. **Configure Google Workspace** — Set up `gws` auth with their Google account (see Authentication Setup above)
@@ -136,7 +137,7 @@ Files you'll typically customize per customer:
 
 ## Directory Structure
 ```
-clawops-executive/
+clawstaffing-executive/
 ├── workspace/
 │   ├── CLAUDE.md
 │   ├── SOUL.md

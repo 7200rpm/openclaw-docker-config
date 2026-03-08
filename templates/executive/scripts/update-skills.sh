@@ -1,14 +1,17 @@
 #!/bin/bash
 set -euo pipefail
 
-# ClawOps — Push skill updates to a running customer instance
+# ClawStaffing — Push skill updates to a running customer instance
 # Usage: ./update-skills.sh --host <VPS_IP> [--skill email-triage]
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SKILLS_DIR="${SCRIPT_DIR}/../templates/executive/workspace/skills"
+TEMPLATE_DIR="${SCRIPT_DIR}/.."
+SKILLS_DIR="${TEMPLATE_DIR}/workspace/skills"
 SSH_USER="openclaw"
 HOST=""
 SPECIFIC_SKILL=""
+SSH_OPTS=(-o StrictHostKeyChecking=accept-new)
+RSYNC_SSH="ssh -o StrictHostKeyChecking=accept-new"
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -24,17 +27,30 @@ if [[ -z "$HOST" ]]; then
   exit 1
 fi
 
+if [[ ! -d "$SKILLS_DIR" ]]; then
+  echo "Skills directory not found: ${SKILLS_DIR}"
+  exit 1
+fi
+
+ssh "${SSH_OPTS[@]}" "${SSH_USER}@${HOST}" "mkdir -p ~/.openclaw/workspace/skills"
+
 if [[ -n "$SPECIFIC_SKILL" ]]; then
+  if [[ ! -d "${SKILLS_DIR}/${SPECIFIC_SKILL}" ]]; then
+    echo "Skill not found: ${SPECIFIC_SKILL}"
+    exit 1
+  fi
+
   echo "→ Pushing skill: ${SPECIFIC_SKILL}"
-  rsync -avz "${SKILLS_DIR}/${SPECIFIC_SKILL}/" \
+  rsync -avz -e "${RSYNC_SSH}" "${SKILLS_DIR}/${SPECIFIC_SKILL}/" \
     "${SSH_USER}@${HOST}:~/.openclaw/workspace/skills/${SPECIFIC_SKILL}/"
 else
   echo "→ Pushing all skills..."
-  rsync -avz "${SKILLS_DIR}/" \
+  rsync -avz -e "${RSYNC_SSH}" "${SKILLS_DIR}/" \
     "${SSH_USER}@${HOST}:~/.openclaw/workspace/skills/"
 fi
 
-ssh "${SSH_USER}@${HOST}" "sudo chown -R 1000:1000 ~/.openclaw/workspace/skills"
+ssh "${SSH_OPTS[@]}" "${SSH_USER}@${HOST}" \
+  "sudo chown -R 1000:1000 ~/.openclaw/workspace/skills"
 
 echo "✅ Skills updated. Changes will take effect on the next session."
 echo "   (OpenClaw watches skill folders by default — no restart needed.)"
