@@ -97,8 +97,9 @@ ssh "${SSH_OPTS[@]}" "${SSH_USER}@${HOST}" "sudo chown -R 1000:1000 ~/.openclaw"
 
 # ─── Step 5: Restart gateway to pick up new config ────────────
 
-echo "→ Restarting OpenClaw gateway..."
-ssh "${SSH_OPTS[@]}" "${SSH_USER}@${HOST}" "cd ~/openclaw && docker compose restart openclaw-gateway"
+echo "→ Recreating OpenClaw gateway + proxy..."
+ssh "${SSH_OPTS[@]}" "${SSH_USER}@${HOST}" \
+  "cd ~/openclaw && docker compose up -d --force-recreate openclaw-gateway caddy"
 
 # ─── Step 6: Health check ─────────────────────────────────────
 
