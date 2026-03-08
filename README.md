@@ -63,6 +63,17 @@ specific files from your local checkout to the VPS:
 5. Run `make deploy` from the infra repo — pulls the Docker image from GHCR and starts the container
 6. **Complete Telegram pairing:** open Telegram, find your bot, send `/start`
 
+## ClawStaffing Hosted Defaults
+
+For ClawStaffing customer instances, the Control UI is intentionally configured to skip OpenClaw's first-visit device pairing by setting `gateway.controlUi.dangerouslyDisableDeviceAuth: true` in the customer config. This is a deliberate tradeoff so the hosted dashboard works immediately after the customer passes Caddy basic auth and the gateway token.
+
+Related config:
+
+- `gateway.trustedProxies = ["127.0.0.1"]`
+- `gateway.controlUi.dangerouslyDisableDeviceAuth = true`
+
+This does **not** auto-pair Telegram DMs. Telegram still requires the user to message the bot with `/start` because that pairing is channel-specific.
+
 ## Config Change Workflow
 
 There are two types of changes, and they have different workflows:
