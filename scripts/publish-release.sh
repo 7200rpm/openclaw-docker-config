@@ -136,6 +136,17 @@ ghcr_token_for() {
     | jq -r '.token'
 }
 
+list_tags() {
+  local image_name="$1"
+  local token
+  token="$(ghcr_token_for "$image_name")"
+
+  curl -fsSL \
+    -H "Authorization: Bearer $token" \
+    "https://ghcr.io/v2/${GHCR_USERNAME}/openclaw-docker-config/${image_name}/tags/list" \
+    | jq -r '.tags[]?'
+}
+
 tag_exists() {
   local image_name="$1"
   local tag="$2"
@@ -169,6 +180,24 @@ resolve_digest() {
   printf '%s\n' "$digest"
 }
 
+resolve_commit_tag() {
+  local image_name="$1"
+  local expected_digest="$2"
+  local tag
+  local tag_digest
+
+  while IFS= read -r tag; do
+    [[ "$tag" =~ ^[0-9a-f]{7}$ ]] || continue
+    tag_digest="$(resolve_digest "$image_name" "$tag")"
+    if [[ "$tag_digest" == "$expected_digest" ]]; then
+      printf '%s\n' "$tag"
+      return 0
+    fi
+  done < <(list_tags "$image_name")
+
+  fail "Could not resolve docker config commit tag for ${image_name}@${expected_digest}"
+}
+
 load_registry_credentials
 ensure_clean_worktree
 
@@ -187,15 +216,27 @@ if [[ "$SKIP_BUILD" -eq 0 ]]; then
 
   echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin >/dev/null
   GHCR_USERNAME="$GHCR_USERNAME" "$REPO_ROOT/scripts/build-and-push.sh" "$RELEASE_VERSION"
+  CONFIG_COMMIT="$(git -C "$REPO_ROOT" rev-parse --short HEAD)"
 else
   if [[ "$(current_openclaw_version)" != "$OPENCLAW_VERSION" ]]; then
     fail "--skip-build requires docker/Dockerfile to already be pinned to OpenClaw ${OPENCLAW_VERSION}"
   fi
 fi
 
-CONFIG_COMMIT="$(git -C "$REPO_ROOT" rev-parse --short HEAD)"
 GATEWAY_DIGEST="$(resolve_digest "openclaw-gateway" "$RELEASE_VERSION")"
 WORKSPACE_SYNC_DIGEST="$(resolve_digest "workspace-sync" "$RELEASE_VERSION")"
+
+if [[ "$SKIP_BUILD" -eq 1 ]]; then
+  GATEWAY_COMMIT_TAG="$(resolve_commit_tag "openclaw-gateway" "$GATEWAY_DIGEST")"
+  WORKSPACE_COMMIT_TAG="$(resolve_commit_tag "workspace-sync" "$WORKSPACE_SYNC_DIGEST")"
+
+  if [[ "$GATEWAY_COMMIT_TAG" != "$WORKSPACE_COMMIT_TAG" ]]; then
+    fail "Gateway and workspace-sync images resolve to different config commits (${GATEWAY_COMMIT_TAG} vs ${WORKSPACE_COMMIT_TAG})"
+  fi
+
+  CONFIG_COMMIT="$GATEWAY_COMMIT_TAG"
+fi
+
 GATEWAY_IMAGE_REF="ghcr.io/${GHCR_USERNAME}/openclaw-docker-config/openclaw-gateway@${GATEWAY_DIGEST}"
 WORKSPACE_SYNC_IMAGE_REF="ghcr.io/${GHCR_USERNAME}/openclaw-docker-config/workspace-sync@${WORKSPACE_SYNC_DIGEST}"
 DEFAULT_NOTES="OpenClaw ${OPENCLAW_VERSION} build published from openclaw-docker-config commit ${CONFIG_COMMIT}."
