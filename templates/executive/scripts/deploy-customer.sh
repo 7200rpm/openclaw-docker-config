@@ -15,6 +15,8 @@ CUSTOMER_ROLE=""
 CUSTOMER_COMPANY=""
 CUSTOMER_TIMEZONE="America/Denver"
 SSH_USER="openclaw"
+SSH_OPTS=(-o StrictHostKeyChecking=accept-new)
+RSYNC_SSH="ssh -o StrictHostKeyChecking=accept-new"
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -76,32 +78,34 @@ mkdir -p "${STAGING_DIR}/workspace/memory"
 # ─── Step 4: Push to VPS ──────────────────────────────────────
 
 echo "→ Pushing workspace to VPS..."
-ssh "${SSH_USER}@${HOST}" "mkdir -p ~/.openclaw/workspace ~/.openclaw/skills"
+ssh "${SSH_OPTS[@]}" "${SSH_USER}@${HOST}" "mkdir -p ~/.openclaw/workspace ~/.openclaw/skills"
 
 # Push workspace files (skills, memory, personality)
 rsync -avz --progress \
+  -e "${RSYNC_SSH}" \
   "${STAGING_DIR}/workspace/" \
   "${SSH_USER}@${HOST}:~/.openclaw/workspace/"
 
 # Push config files (openclaw.json)
 rsync -avz --progress \
+  -e "${RSYNC_SSH}" \
   "${STAGING_DIR}/config/" \
   "${SSH_USER}@${HOST}:~/.openclaw/"
 
 # Fix permissions
-ssh "${SSH_USER}@${HOST}" "sudo chown -R 1000:1000 ~/.openclaw"
+ssh "${SSH_OPTS[@]}" "${SSH_USER}@${HOST}" "sudo chown -R 1000:1000 ~/.openclaw"
 
 # ─── Step 5: Restart gateway to pick up new config ────────────
 
 echo "→ Restarting OpenClaw gateway..."
-ssh "${SSH_USER}@${HOST}" "cd ~/openclaw && docker compose restart openclaw-gateway"
+ssh "${SSH_OPTS[@]}" "${SSH_USER}@${HOST}" "cd ~/openclaw && docker compose restart openclaw-gateway"
 
 # ─── Step 6: Health check ─────────────────────────────────────
 
 echo "→ Waiting for gateway to start..."
 sleep 5
 
-HEALTH=$(ssh "${SSH_USER}@${HOST}" \
+HEALTH=$(ssh "${SSH_OPTS[@]}" "${SSH_USER}@${HOST}" \
   "curl -sf http://127.0.0.1:18789/health 2>/dev/null || echo 'FAILED'")
 
 if [[ "$HEALTH" == "FAILED" ]]; then
