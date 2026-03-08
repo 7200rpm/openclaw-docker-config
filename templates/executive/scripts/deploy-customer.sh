@@ -17,6 +17,8 @@ CUSTOMER_TIMEZONE="America/Denver"
 SSH_USER="openclaw"
 SSH_OPTS=(-o StrictHostKeyChecking=accept-new)
 RSYNC_SSH="ssh -o StrictHostKeyChecking=accept-new"
+GATEWAY_READY_ATTEMPTS="${GATEWAY_READY_ATTEMPTS:-12}"
+GATEWAY_READY_DELAY_SECONDS="${GATEWAY_READY_DELAY_SECONDS:-5}"
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -104,17 +106,23 @@ ssh "${SSH_OPTS[@]}" "${SSH_USER}@${HOST}" \
 # ─── Step 6: Health check ─────────────────────────────────────
 
 echo "→ Waiting for gateway to start..."
-sleep 5
+for attempt in $(seq 1 "$GATEWAY_READY_ATTEMPTS"); do
+  if ssh "${SSH_OPTS[@]}" "${SSH_USER}@${HOST}" \
+    "curl -sf http://127.0.0.1:18789/health >/dev/null 2>&1"; then
+    echo "→ Gateway health check passed"
+    break
+  fi
 
-HEALTH=$(ssh "${SSH_OPTS[@]}" "${SSH_USER}@${HOST}" \
-  "curl -sf http://127.0.0.1:18789/health 2>/dev/null || echo 'FAILED'")
+  if [[ "$attempt" -eq "$GATEWAY_READY_ATTEMPTS" ]]; then
+    echo ""
+    echo "⚠️  Gateway health check failed after ${GATEWAY_READY_ATTEMPTS} attempts. Check logs:"
+    echo "   ssh ${SSH_USER}@${HOST} 'cd ~/openclaw && docker compose logs --tail 50 openclaw-gateway'"
+    exit 1
+  fi
 
-if [[ "$HEALTH" == "FAILED" ]]; then
-  echo ""
-  echo "⚠️  Gateway health check failed. Check logs:"
-  echo "   ssh ${SSH_USER}@${HOST} 'cd ~/openclaw && docker compose logs --tail 50 openclaw-gateway'"
-  exit 1
-fi
+  echo "→ Gateway not ready yet (attempt ${attempt}/${GATEWAY_READY_ATTEMPTS}); retrying in ${GATEWAY_READY_DELAY_SECONDS}s..."
+  sleep "$GATEWAY_READY_DELAY_SECONDS"
+done
 
 echo ""
 echo "═══════════════════════════════════════════"
