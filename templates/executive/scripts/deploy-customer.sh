@@ -26,6 +26,7 @@ GATEWAY_READY_ATTEMPTS="${GATEWAY_READY_ATTEMPTS:-12}"
 GATEWAY_READY_DELAY_SECONDS="${GATEWAY_READY_DELAY_SECONDS:-5}"
 RUNTIME_READY_ATTEMPTS="${RUNTIME_READY_ATTEMPTS:-12}"
 RUNTIME_READY_DELAY_SECONDS="${RUNTIME_READY_DELAY_SECONDS:-5}"
+SKIP_SERVICE_RESTART="${SKIP_SERVICE_RESTART:-0}"
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -130,6 +131,16 @@ fi
 ssh "${SSH_OPTS[@]}" "${SSH_USER}@${HOST}" "sudo chown -R 1000:1000 ~/.openclaw ~/.config/gws"
 
 # ─── Step 5: Restart gateway to pick up new config ────────────
+
+if [[ "$SKIP_SERVICE_RESTART" == "1" ]]; then
+  echo "→ Skipping service restart (SKIP_SERVICE_RESTART=1)"
+  echo ""
+  echo "═══════════════════════════════════════════"
+  echo "  Deployment staged without restart"
+  echo "═══════════════════════════════════════════"
+  echo ""
+  exit 0
+fi
 
 echo "→ Recreating OpenClaw services..."
 ssh "${SSH_OPTS[@]}" "${SSH_USER}@${HOST}" \

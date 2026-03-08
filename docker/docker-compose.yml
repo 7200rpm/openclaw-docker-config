@@ -1,6 +1,6 @@
 services:
   openclaw-gateway:
-    image: ghcr.io/${GHCR_USERNAME}/openclaw-docker-config/openclaw-gateway:latest
+    image: ${OPENCLAW_GATEWAY_IMAGE:-ghcr.io/${GHCR_USERNAME}/openclaw-docker-config/openclaw-gateway:latest}
     env_file: .env
     restart: unless-stopped
     environment:
@@ -26,7 +26,7 @@ services:
     command: openclaw gateway --bind lan --port 18789
 
   template-runtime:
-    image: ghcr.io/${GHCR_USERNAME}/openclaw-docker-config/openclaw-gateway:latest
+    image: ${OPENCLAW_GATEWAY_IMAGE:-ghcr.io/${GHCR_USERNAME}/openclaw-docker-config/openclaw-gateway:latest}
     env_file: .env
     restart: unless-stopped
     network_mode: "service:openclaw-gateway"
@@ -66,7 +66,7 @@ services:
       - template-runtime
 
   workspace-sync:
-    image: ghcr.io/${GHCR_USERNAME}/openclaw-docker-config/workspace-sync:latest
+    image: ${WORKSPACE_SYNC_IMAGE:-ghcr.io/${GHCR_USERNAME}/openclaw-docker-config/workspace-sync:latest}
     restart: unless-stopped
     environment:
       GIT_WORKSPACE_REPO: ${GIT_WORKSPACE_REPO:-}
