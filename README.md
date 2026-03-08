@@ -104,6 +104,50 @@ edit → commit → push → build-and-push.sh → make deploy (infra repo)
 3. Build and push image: `bash scripts/build-and-push.sh`
 4. From the **infra repo**: `make deploy` (pulls new image from GHCR and restarts)
 
+## Managed Release Publishing
+
+For ClawStaffing managed releases, do not hand-enter image refs or commit SHAs in the
+Managed Releases UI. Generate them with the publish helper instead.
+
+```bash
+bash scripts/publish-release.sh --openclaw-version 2026.3.7
+```
+
+What the helper does:
+
+1. Verifies the repo is clean
+2. Bumps `ARG OPENCLAW_VERSION` in `docker/Dockerfile` if needed
+3. Commits and pushes the config repo
+4. Builds and pushes the `openclaw-gateway` and `workspace-sync` images
+5. Resolves digest-pinned image refs from GHCR
+6. Prints the exact JSON payload to paste into the ClawStaffing Managed Releases UI
+
+Useful options:
+
+- `--release-version 2026.3.7-claw.2` if you need a second managed release on the same upstream OpenClaw version
+- `--notes "..."` to prefill release notes
+- `--skip-build` to reprint the payload for an already-published managed release tag
+
+Example output:
+
+```json
+{
+  "releaseVersion": "2026.3.7-claw.1",
+  "openclawVersion": "2026.3.7",
+  "gatewayImageRef": "ghcr.io/vinny706/openclaw-docker-config/openclaw-gateway@sha256:...",
+  "workspaceSyncImageRef": "ghcr.io/vinny706/openclaw-docker-config/workspace-sync@sha256:...",
+  "dockerConfigCommit": "30dc059",
+  "notes": "OpenClaw 2026.3.7 build published from openclaw-docker-config commit 30dc059."
+}
+```
+
+Then:
+
+1. Open ClawStaffing Admin → Managed Releases
+2. Create the release using the emitted values
+3. Set it as default only when you want new instances to target it
+4. Apply it to existing instances explicitly
+
 ## Working with Skills
 
 This repository includes a minimal set of generic skills in `config/skills-manifest.txt`. You can extend OpenClaw by adding ClawHub skills or creating custom skills.
