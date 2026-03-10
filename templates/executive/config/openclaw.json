@@ -4,7 +4,8 @@
     "port": 18789,
     "trustedProxies": ["127.0.0.1"],
     "controlUi": {
-      "dangerouslyDisableDeviceAuth": true
+      "dangerouslyDisableDeviceAuth": true,
+      "dangerouslyAllowHostHeaderOriginFallback": true
     }
   },
   "agents": {
