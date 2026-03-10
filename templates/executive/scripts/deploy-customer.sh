@@ -170,7 +170,7 @@ done
 echo "→ Waiting for template runtime to start..."
 for attempt in $(seq 1 "$RUNTIME_READY_ATTEMPTS"); do
   if ssh "${SSH_OPTS[@]}" "${SSH_USER}@${HOST}" \
-    "curl -sf http://127.0.0.1:3001/health >/dev/null 2>&1"; then
+    "cd ~/openclaw && docker compose exec -T template-runtime curl -sf http://127.0.0.1:3001/health >/dev/null 2>&1"; then
     echo "→ Template runtime health check passed"
     break
   fi
