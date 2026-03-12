@@ -2,6 +2,10 @@ const fs = require("fs");
 const path = require("path");
 const { execFile } = require("child_process");
 const { promisify } = require("util");
+const {
+  getInboxOverview,
+  isConfigured: isAgentMailConfigured,
+} = require("../lib/agentmail");
 
 const execFileAsync = promisify(execFile);
 
@@ -63,10 +67,17 @@ function parseTasks(taskPayload) {
   return Array.isArray(items) ? items.slice(0, 6) : [];
 }
 
-async function getExecutiveData(workspaceDir, customerTimezone, setupState) {
+async function getExecutiveData(
+  workspaceDir,
+  customerTimezone,
+  setupState
+) {
   const memoryMarkdown = readTextFile(path.join(workspaceDir, "MEMORY.md"));
   const latestBriefing = findLatestMemoryLog(workspaceDir);
   const waitingOn = extractSection(memoryMarkdown, "Waiting On");
+  const agentInbox = isAgentMailConfigured()
+    ? await getInboxOverview(10).catch(() => ({ mailbox: null, threads: [] }))
+    : { mailbox: null, threads: [] };
 
   const googleWorkspaceConnected = (setupState?.integrations || []).some(
     (integration) =>
@@ -79,9 +90,9 @@ async function getExecutiveData(workspaceDir, customerTimezone, setupState) {
     return {
       latestBriefing,
       waitingOn,
+      agentInbox,
       todayEvents: [],
       tasks: [],
-      unreadSummary: null,
       needsGoogleWorkspace: true,
       customerTimezone,
     };
@@ -90,7 +101,7 @@ async function getExecutiveData(workspaceDir, customerTimezone, setupState) {
   const now = new Date();
   const later = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-  const [calendarPayload, taskPayload, unreadPayload] = await Promise.all([
+  const [calendarPayload, taskPayload] = await Promise.all([
     runJsonCommand(
       "gws",
       [
@@ -122,29 +133,14 @@ async function getExecutiveData(workspaceDir, customerTimezone, setupState) {
       ],
       workspaceDir
     ),
-    runJsonCommand(
-      "gws",
-      [
-        "gmail",
-        "users.messages",
-        "list",
-        "--params",
-        JSON.stringify({
-          userId: "me",
-          q: "is:unread",
-          maxResults: 12,
-        }),
-      ],
-      workspaceDir
-    ),
   ]);
 
   return {
     latestBriefing,
     waitingOn,
+    agentInbox,
     todayEvents: parseUpcomingEvents(calendarPayload),
     tasks: parseTasks(taskPayload),
-    unreadSummary: unreadPayload,
     needsGoogleWorkspace: false,
     customerTimezone,
   };
@@ -166,12 +162,10 @@ exports.render = async function renderExecutive(context) {
     context.customerTimezone,
     context.setupState
   );
-
-  const unreadCount = Array.isArray(data.unreadSummary?.messages)
-    ? data.unreadSummary.messages.length
-    : Array.isArray(data.unreadSummary)
-      ? data.unreadSummary.length
-      : 0;
+  const mailbox = data.agentInbox?.mailbox || null;
+  const latestThread = Array.isArray(data.agentInbox?.threads)
+    ? data.agentInbox.threads[0] || null
+    : null;
 
   return `
     <article class="card span-8">
@@ -186,7 +180,7 @@ exports.render = async function renderExecutive(context) {
       <h2>Quick Actions</h2>
       <p class="subtle">Operational shortcuts for the executive assistant workflow.</p>
       <div class="split">
-        <a class="button primary" href="/advanced" target="_blank" rel="noopener">Triage Inbox</a>
+        <a class="button primary" href="/inbox">Triage Inbox</a>
         <a class="button" href="/advanced" target="_blank" rel="noopener">Prep Next Meeting</a>
         <a class="button" href="/advanced" target="_blank" rel="noopener">Review Tasks</a>
         <a class="button" href="/advanced" target="_blank" rel="noopener">Open Agent Chat</a>
@@ -195,11 +189,40 @@ exports.render = async function renderExecutive(context) {
 
     <article class="card span-4">
       <h2>Inbox Summary</h2>
-      <p class="subtle">Unread inbox snapshot from Gmail via Google Workspace CLI.</p>
+      <p class="subtle">Separate intake inbox running directly on this instance through AgentMail.</p>
       ${
-        data.needsGoogleWorkspace
-          ? '<p class="muted">Connect Google Workspace in ClawStaffing to unlock inbox summary.</p>'
-          : `<p class="big-number">${unreadCount}</p><p class="muted">Unread messages</p>`
+        mailbox
+          ? `
+            <p class="big-number">${mailbox.summary.openThreads}</p>
+            <p class="muted">Open threads</p>
+            <div class="metric-row">
+              <span>Inbox</span>
+              <span class="muted">${context.escapeHtml(mailbox.emailAddress)}</span>
+            </div>
+            <div class="metric-row">
+              <span>Draft ready</span>
+              <span class="muted">${context.escapeHtml(
+                String(mailbox.summary.draftReadyThreads)
+              )}</span>
+            </div>
+            <div class="metric-row">
+              <span>Awaiting reply</span>
+              <span class="muted">${context.escapeHtml(
+                String(mailbox.summary.awaitingReplyThreads)
+              )}</span>
+            </div>
+            ${
+              latestThread
+                ? `<div class="metric-row"><span>Latest thread</span><span class="muted">${context.escapeHtml(
+              latestThread.subject || latestThread.primaryCorrespondent || "Untitled"
+                  )}</span></div>`
+                : ""
+            }
+            <div style="margin-top: 14px;">
+              <a class="button primary" href="/inbox">Open Inbox</a>
+            </div>
+          `
+          : '<p class="muted">Agent inbox has not been provisioned yet.</p>'
       }
     </article>
 
